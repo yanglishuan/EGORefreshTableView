@@ -25,17 +25,35 @@
 //
 
 #import "RootViewController.h"
+#import "Model.h"
+
+
+
+
+@interface RootViewController()
+{
+    Model *_model;
+}
+@end
+
+typedef enum {
+    EGOHeaderView = 0,
+    EGOBottomView
+} EGORefreshView;
+
 
 @implementation RootViewController
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-	[self.tableView reloadData];
+	_model = [[Model alloc] init];
+    [self.tableView reloadData];
     
 	if (_refreshHeaderView == nil) {
 		
 		EGORefreshTableHeaderView *view = [[EGORefreshTableHeaderView alloc] initWithFrame: CGRectMake(0.0f, self.tableView.contentSize.height, self.tableView.frame.size.width, self.tableView.bounds.size.height)];
 		view.delegate = self;
+        view.tag = EGOBottomView;
 		[self.tableView addSubview:view];
 		_refreshTailerView = view;
 		[view release];
@@ -43,6 +61,7 @@
         view = [[EGORefreshTableHeaderView alloc] initWithFrame: CGRectMake(0.0f, - self.tableView.bounds.size.height, self.tableView.frame.size.width, self.tableView.bounds.size.height)];
         
 		view.delegate = self;
+        view.tag = EGOHeaderView;
 		[self.tableView addSubview:view];
 		_refreshHeaderView = view;
 		[view release];
@@ -63,11 +82,11 @@
 #pragma mark UITableViewDataSource
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
-    return 3;
+    return 1;
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-    return 4;
+    return _model.array.count;
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
@@ -78,53 +97,54 @@
     if (cell == nil) {
         cell = [[[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:CellIdentifier] autorelease];
     }
-    
+    cell.textLabel.text = [NSString stringWithFormat:@"%d", [[_model.array objectAtIndex:indexPath.row] intValue]];
 	// Configure the cell.
 
     return cell;
 }
 
-- (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section{
-	
-	return [NSString stringWithFormat:@"Section %i", section];
-	
-}
-
-
 #pragma mark -
 #pragma mark Data Source Loading / Reloading Methods
 
 - (void)reloadTableViewDataSource{
-	
 	//  should be calling your tableviews data source model to reload
 	//  put here just for demo
+    [_model reload];
 	_reloading = YES;
 	
 }
 
-- (void)doneLoadingTableViewData{
-	
+- (void)doneReLoadingTableViewData
+{
 	//  model should call this when its done loading
 	_reloading = NO;
 	[_refreshHeaderView egoRefreshScrollViewDataSourceDidFinishedLoading:self.tableView];
-	[_refreshTailerView egoRefreshScrollViewDataSourceDidFinishedLoading:self.tableView];
 }
 
+- (void)doneLoadingTableViewData
+{
+    _reloading = NO;
+    [_refreshTailerView egoRefreshScrollViewDataSourceDidFinishedLoading:self.tableView];
+    [self.tableView reloadData];
+    _refreshTailerView.frame = CGRectMake(0.0f, self.tableView.contentSize.height, self.tableView.frame.size.width, self.tableView.bounds.size.height);
+}
+
+- (void)loadMoreTableViewDataSource {
+    [_model loadMore];
+    _reloading = YES;
+}
 
 #pragma mark -
 #pragma mark UIScrollViewDelegate Methods
 
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView{	
-	
-	[_refreshHeaderView egoRefreshScrollViewDidScroll:scrollView];
+    [_refreshHeaderView egoRefreshScrollViewDidScroll:scrollView];
     [_refreshTailerView egoRefreshScrollViewDidScroll:scrollView];
 }
 
 - (void)scrollViewDidEndDragging:(UIScrollView *)scrollView willDecelerate:(BOOL)decelerate{
-	
 	[_refreshHeaderView egoRefreshScrollViewDidEndDragging:scrollView];
     [_refreshTailerView egoRefreshScrollViewDidEndDragging:scrollView];
-	
 }
 
 
@@ -132,16 +152,18 @@
 #pragma mark EGORefreshTableHeaderDelegate Methods
 
 - (void)egoRefreshTableHeaderDidTriggerRefresh:(EGORefreshTableHeaderView*)view{
-	
-	[self reloadTableViewDataSource];
-	[self performSelector:@selector(doneLoadingTableViewData) withObject:nil afterDelay:3.0];
-	
+	if (view.tag == EGOHeaderView) {
+        [self reloadTableViewDataSource];
+        [self performSelector:@selector(doneReLoadingTableViewData) withObject:nil afterDelay:3.0];
+    } else {
+        [self loadMoreTableViewDataSource];
+        [self performSelector:@selector(doneLoadingTableViewData) withObject:nil afterDelay:3.0];
+    }
+    
 }
 
 - (BOOL)egoRefreshTableHeaderDataSourceIsLoading:(EGORefreshTableHeaderView*)view{
-	
 	return _reloading; // should return if data source model is reloading
-	
 }
 
 - (NSDate*)egoRefreshTableHeaderDataSourceLastUpdated:(EGORefreshTableHeaderView*)view{

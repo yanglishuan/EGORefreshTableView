@@ -291,20 +291,18 @@
             [UIView setAnimationDuration:0.2];
             scrollView.contentInset = UIEdgeInsetsMake(0.0f, 0.0f, 65.0f, 0.0f);
             [UIView commitAnimations];
-
         }
     }
-    
-		
 }
 
 - (void)egoRefreshScrollViewDataSourceDidFinishedLoading:(UIScrollView *)scrollView {	
 	
 	[UIView beginAnimations:nil context:NULL];
 	[UIView setAnimationDuration:.3];
-	[scrollView setContentInset:UIEdgeInsetsMake(0.0f, 0.0f, 0.0f, 0.0f)];
-	[UIView commitAnimations];
-	
+    if (_pullDirection == EGOPullingDown) {
+        [scrollView setContentInset:UIEdgeInsetsMake(0.0f, 0.0f, 0.0f, 0.0f)];
+    }
+  	[UIView commitAnimations];
 	[self setState:EGOOPullRefreshNormal];
 
 }
@@ -314,7 +312,6 @@
 #pragma mark Dealloc
 
 - (void)dealloc {
-	
 	_delegate=nil;
 	_activityView = nil;
 	_statusLabel = nil;

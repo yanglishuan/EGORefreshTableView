@@ -27,6 +27,9 @@
 
 #import "EGORefreshTableHeaderView.h"
 
+
+
+
 @interface RootViewController : UITableViewController  <EGORefreshTableHeaderDelegate, UITableViewDelegate, UITableViewDataSource>{
 	
 	EGORefreshTableHeaderView *_refreshHeaderView;
